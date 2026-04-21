@@ -210,6 +210,7 @@
     </style>
 </head>
 <body>
+    {% block header %}
     <header>
         <!-- جهة اليمين: شعار الأمانة -->
         <div class="header-right">
@@ -231,6 +232,7 @@
             </nav>
         </div>
     </header>
+    {% endblock header %}
 
     <main>
         {% block content %}{% endblock %}
