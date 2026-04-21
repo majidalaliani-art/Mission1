@@ -1,0 +1,115 @@
+{% extends "admin/base_site.html" %}
+<!-- PIXIE_DUST_PIVOT_TABLE_LOADED -->
+{% load i18n admin_urls static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .pivot-container {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 20px;
+        background: #fff;
+        border: 1px solid #ccc;
+        position: relative;
+    }
+    .pivot-table {
+        border-collapse: collapse;
+        width: max-content;
+        min-width: 100%;
+        font-size: 13px;
+    }
+    .pivot-table th, .pivot-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: right;
+        white-space: nowrap;
+    }
+    .pivot-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        color: #333;
+        font-weight: bold;
+    }
+    .pivot-table .report-info {
+        background-color: #f1f1f1;
+        position: sticky;
+        right: 0;
+        z-index: 5;
+    }
+    .pivot-table tr:nth-child(even) {background-color: #fafafa;}
+    .pivot-table tr:hover {background-color: #f5f5f5;}
+    
+    .status-cell {
+        min-width: 150px;
+        text-align: center;
+    }
+    .status-ok { color: #2ecc71; font-weight: bold; }
+    .status-warn { color: #f1c40f; font-weight: bold; }
+    .status-fail { color: #e74c3c; font-weight: bold; }
+    
+    .btn-export {
+        display: inline-block;
+        margin-bottom: 15px;
+        padding: 8px 15px;
+        background: #79aec8;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    .btn-export:hover { background: #609ab6; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+&rsaquo; <a href="{% url 'admin:core_reportitemevaluation_changelist' %}">سجل التقارير التفصيلي</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    
+    <p>هذا الجدول يعرض كافة التقارير بشكل أفقي لسهولة المقارنة والمتابعة.</p>
+
+    <div class="pivot-container">
+        <table class="pivot-table">
+            <thead>
+                <tr>
+                    <th class="report-info">تاريخ التقرير</th>
+                    <th class="report-info">القائم بالزيارة</th>
+                    <th class="report-info">الوحدة</th>
+                    <th class="report-info">نوع الموقع</th>
+                    <th class="report-info">الموقع</th>
+                    {% for name in item_names %}
+                        <th>{{ name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in matrix %}
+                <tr>
+                    <td class="report-info">{{ row.report.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="report-info">{{ row.report.user.username }}</td>
+                    <td class="report-info">{{ row.report.region }}</td>
+                    <td class="report-info">{{ row.report.site_type }}</td>
+                    <td class="report-info">{{ row.report.location }}</td>
+                    {% for status in row.statuses %}
+                        <td class="status-cell {% if 'منفذ (100%' in status %}status-ok{% elif 'ملاحظات' in status %}status-warn{% elif 'غير' in status %}status-fail{% endif %}">
+                            {{ status }}
+                        </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

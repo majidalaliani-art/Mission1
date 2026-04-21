@@ -1,0 +1,58 @@
+{% extends 'core/base.html' %}
+
+{% block title %}شكراً لك - MyMission{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center;">
+    <div class="success-icon">✓</div>
+    <h1>تم الإرسال بنجاح!</h1>
+    <p class="success-msg">نشكرك على مجهودك. تم استلام تقريرك الفني وحفظه بأمان في قاعدة البيانات.</p>
+    <div class="success-actions">
+        <a href="{% url 'report_create' %}" class="btn">إضافة تقرير جديد</a>
+        <a href="/" class="btn secondary-btn">العودة للرئيسية</a>
+    </div>
+</div>
+<style>
+    .success-icon {
+        font-size: 5rem; 
+        color: var(--accent-color); 
+        margin-bottom: 1.5rem; 
+        text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+    .success-msg {
+        font-size: 1.3rem; 
+        color: #d1fae5; 
+        margin-bottom: 2.5rem; 
+        line-height: 1.6;
+    }
+    .success-actions {
+        display: flex; 
+        gap: 1rem; 
+        justify-content: center; 
+        align-items: center; 
+        width: 100%;
+    }
+    .success-actions .btn {
+        text-decoration: none;
+        display: inline-block;
+        line-height: normal;
+        text-align: center;
+        width: auto; 
+        flex: 1; 
+        min-width: 150px; 
+        white-space: nowrap;
+    }
+    .secondary-btn {
+        background: rgba(255,255,255,0.05) !important; 
+        color: #d1fae5 !important; 
+        border: 1px solid var(--glass-border) !important;
+    }
+
+    @media (max-width: 768px) {
+        .success-icon { font-size: 4rem; }
+        .success-msg { font-size: 1.1rem; margin-bottom: 2rem; }
+        .success-actions { flex-direction: column; gap: 0.8rem; }
+        .success-actions .btn { width: 100%; flex: none; }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "admin/base_site.html" %}
+<!-- PIXIE_DUST_PIVOT_TABLE_LOADED -->
+{% load i18n admin_urls static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .pivot-container {
+        width: 100%;
+        max-height: 550px; /* Approximately 13 rows */
+        overflow: auto;
+        margin-top: 20px;
+        background: #fff;
+        border: 1px solid #ccc;
+        position: relative;
+    }
+    .pivot-table {
+        border-collapse: separate; /* Required for sticky borders */
+        border-spacing: 0;
+        width: max-content;
+        min-width: 100%;
+        font-size: 13px;
+    }
+    .pivot-table th, .pivot-table td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: right;
+        white-space: nowrap;
+    }
+    /* Sticky Headers Styling */
+    .pivot-table thead tr:nth-child(1) th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+    .pivot-table thead tr:nth-child(2) th {
+        position: sticky;
+        top: 41px; /* Height of the first header row */
+        z-index: 19;
+    }
+    .pivot-table th {
+        background-color: #34495e;
+        color: white;
+        font-weight: bold;
+    }
+    .pivot-table .report-info {
+        background-color: #f1f1f1;
+        position: sticky;
+        right: 0;
+        z-index: 5;
+        border-left: 2px solid #34495e;
+    }
+    /* Z-index management for intersecting sticky elements */
+    .pivot-table thead tr th.report-info {
+        z-index: 30 !important;
+    }
+    
+    .pivot-table tr:nth-child(even) {background-color: #fafafa;}
+    .pivot-table tr:hover {background-color: #f5f5f5;}
+    
+    .status-cell {
+        min-width: 150px;
+        text-align: center;
+    }
+    .pivot-table .group-site { background-color: #2c3e50 !important; border-bottom: 3px solid #1a252f; }
+    .pivot-table .group-restroom { background-color: #27ae60 !important; border-bottom: 3px solid #1e8449; }
+    .pivot-table .group-area { background-color: #e67e22 !important; border-bottom: 3px solid #d35400; }
+    
+    .track-separator {
+        border-right: 4px solid #333 !important;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+&rsaquo; <a href="{% url 'admin:core_reportitemevaluation_changelist' %}">سجل التقارير التفصيلي</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    
+    <div class="pivot-container">
+        <table class="pivot-table">
+            <thead>
+                <!-- Group Headers Row -->
+                <tr>
+                    <th colspan="5" class="report-info">بيانات التقرير الأساسية</th>
+                    {% for track in track_headers %}
+                        <th colspan="{{ track.colspan }}" class="{% if track.name == 'مواقع' %}group-site{% elif track.name == 'دورات مياه' %}group-restroom{% else %}group-area{% endif %}">
+                            {{ track.name }}
+                        </th>
+                    {% endfor %}
+                </tr>
+                <!-- Sub-Headers Row -->
+                <tr>
+                    <th class="report-info">تاريخ التقرير</th>
+                    <th class="report-info">القائم بالزيارة</th>
+                    <th class="report-info">الوحدة</th>
+                    <th class="report-info">نوع الموقع</th>
+                    <th class="report-info">الموقع</th>
+                    {% for name in item_names %}
+                        <th>{{ name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in matrix %}
+                <tr>
+                    <td class="report-info">{{ row.report.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="report-info">{{ row.report.user.username }}</td>
+                    <td class="report-info">{{ row.report.region }}</td>
+                    <td class="report-info">{{ row.report.site_type }}</td>
+                    <td class="report-info">{{ row.report.location }}</td>
+                    {% for status in row.statuses %}
+                        <td class="status-cell">
+                            {{ status }}
+                        </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

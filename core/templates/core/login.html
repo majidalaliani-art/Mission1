@@ -1,0 +1,69 @@
+{% extends 'core/base.html' %}
+
+{% block title %}تسجيل الدخول - MyMission{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- بيانات المشروع الرسمية -->
+    <div class="project-info">
+        <p style="margin: 0; font-weight: 800; font-size: 1rem; color: var(--accent-color);">مشروع أعمال ضبط الجودة لمشاريع صيانة وتشغيل المرافق للمواقع التابعة لقطاع الأمانة في الوسط</p>
+        <p style="margin: 0.6rem 0; font-weight: 700;">نموذج تقييم فحص أداء الصيانة الوقائية</p>
+        <p style="margin: 0.6rem 0; font-weight: 600;">شركة مشاري الشثري للاستشارات الهندسية</p>
+        <p style="margin: 0.6rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">مدير المشروع / مهندس . مدحت العوضي</p>
+    </div>
+    <h1>تسجيل الدخول</h1>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div style="color: #fca5a5; font-size: 0.8rem; margin-top: 0.3rem;">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn">دخول</button>
+    </form>
+</div>
+<style>
+    .project-info {
+        margin-bottom: 2rem; 
+        font-size: 0.95rem; 
+        line-height: 1.6; 
+        color: #d1fae5; 
+        opacity: 0.95; 
+        text-align: center; 
+        border-bottom: 1px solid rgba(255,255,255,0.1); 
+        padding-bottom: 1.5rem;
+    }
+    
+    /* تجميل حقول Django الافتراضية في صفحة الدخول */
+    input[type="text"], input[type="password"] {
+        width: 100%;
+        padding: 1.1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 12px;
+        font-family: inherit;
+        color: white;
+        box-sizing: border-box;
+        transition: all 0.3s;
+    }
+    
+    input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+
+    @media (max-width: 768px) {
+        .project-info {
+            font-size: 0.85rem;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
