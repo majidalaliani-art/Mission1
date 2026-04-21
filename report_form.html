@@ -1,0 +1,686 @@
+{% extends 'core/base.html' %}
+
+{% block title %}استمارة جديدة - MyMission{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+<div class="card wizard-card">
+    <!-- عرض الأخطاء إن وجدت -->
+    {% if form.errors %}
+    <div class="error-banner">
+        <strong>حدث خطأ أثناء الإرسال:</strong>
+        <ul>
+            {% for field, errors in form.errors.items %}
+                <li>{{ field }}: {{ errors|striptags }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+        <div class="steps-indicators">
+            <div class="step-dot active" data-step="1">1</div>
+            <div class="step-dot" data-step="2">2</div>
+            <div class="step-dot" data-step="3">3</div>
+            <div class="step-dot" data-step="4">4</div>
+        </div>
+    </div>
+
+    <form id="multi-step-form" method="post">
+        {% csrf_token %}
+        <!-- Hidden input to store all technical evaluations -->
+        <input type="hidden" name="evaluation_data" id="evaluation_data">
+        
+        <!-- Step 1: Region -->
+        <div class="form-step active" id="step-1">
+            <h1>اختر الوحدة</h1>
+            <div class="selection-grid">
+                {% for value, label in form.region.field.choices %}
+                    {% if value %}
+                    <label class="selection-card">
+                        <input type="radio" name="region" value="{{ value }}" required onchange="handleRegionChange('{{ value }}')">
+                        <div class="card-content">
+                            <span class="card-icon">
+                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"></path></svg>
+                            </span>
+                            <span class="card-label">{{ label }}</span>
+                        </div>
+                    </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="step-footer">
+                <button type="button" class="btn next-btn" onclick="nextStep(1)">التالي</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Site Type -->
+        <div class="form-step" id="step-2">
+            <h1>نوع الموقع</h1>
+            <div class="selection-grid">
+                {% for value, label in form.site_type.field.choices %}
+                    {% if value %}
+                    <label class="selection-card">
+                        <input type="radio" name="site_type" value="{{ value }}" required onchange="handleSiteTypeChange('{{ value }}')">
+                        <div class="card-content">
+                            <span class="card-icon">
+                                {% if value == 'مواقع' %}
+                                    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                {% elif value == 'دورات مياه' %}
+                                    <svg viewBox="0 0 24 24">
+                                        <rect x="2" y="5" width="20" height="14" rx="3" style="stroke-width: 1.5;"></rect>
+                                        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" style="font-family: Arial, sans-serif; font-weight: 900; font-size: 8px; fill: #10b981; stroke: none;">WC</text>
+                                    </svg>
+                                {% elif value == 'مساحات انتشارية' %}
+                                    <svg viewBox="0 0 24 24"><path d="M10 2 8 22M14 2l2 20M12 4v4m0 6v4"></path></svg>
+{% else %}
+                                    🏢
+                                {% endif %}
+                            </span>
+                            <span class="card-label">{{ label }}</span>
+                        </div>
+                    </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="step-footer">
+                <button type="button" class="btn back-btn" onclick="prevStep(2)">السابق</button>
+                <button type="button" class="btn next-btn" onclick="nextStep(2)">التالي</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Location -->
+        <div class="form-step" id="step-3">
+            <h1 id="location-step-title">اختر الموقع</h1>
+            <div class="search-box-container">
+                <input type="text" id="location-search" placeholder="ابحث عن موقع..." class="search-input" onkeyup="filterCards('location-selection-grid', 'location-search')">
+                <span class="search-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </span>
+            </div>
+            <div class="selection-grid" id="location-selection-grid">
+                <p style="text-align: center; color: #999;">يرجى إكمال الخطوات السابقة</p>
+            </div>
+            <div class="step-footer">
+                <button type="button" class="btn back-btn" onclick="prevStep(3)">السابق</button>
+                <button type="button" class="btn next-btn" onclick="nextStep(3)">التالي</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Serial Evaluation -->
+        <div class="form-step" id="step-4">
+            <div class="evaluation-header">
+                <h1>التقييم الفني المتسلسل</h1>
+                <div class="item-counter" id="item-counter">البند 1 من 0</div>
+            </div>
+            
+            <div class="inner-progress">
+                <div class="inner-bar" id="inner-bar" style="width: 0%"></div>
+            </div>
+
+            <div id="observation-container" class="observation-box">
+                <!-- Detailed item will be rendered here via JS -->
+                 <div class="loading-placeholder">جاري تجهيز البنود...</div>
+            </div>
+
+            <div class="step-footer" id="final-footer" style="display: none;">
+                <button type="button" class="btn back-btn" onclick="goToStep3()">العودة لاختيار الموقع</button>
+                <div style="flex: 1;"></div>
+                <button type="submit" class="btn submit-btn">إرسال التقرير النهائي</button>
+            </div>
+            
+            <div class="step-footer" id="serial-footer">
+                <button type="button" class="btn back-btn" id="prev-item-btn" onclick="prevObservationItem()" style="visibility: hidden;">البند السابق</button>
+                <span id="auto-next-label" style="color: #888; font-size: 0.8rem;">اختر لنتقل تلقائياً...</span>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .wizard-card { 
+        max-width: 900px; 
+        margin: 0 auto; 
+        position: relative; 
+        overflow: visible; 
+        background: rgba(6, 78, 59, 0.05); 
+        backdrop-filter: blur(40px); 
+        border: 1px solid rgba(16, 185, 129, 0.2); 
+    }
+    .progress-container { 
+        margin-bottom: 4rem; 
+        position: relative; 
+        height: 6px; 
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 10px; 
+    }
+    .progress-bar { 
+        position: absolute; 
+        height: 100%; 
+        width: 25%; 
+        background: linear-gradient(to right, #10b981, #34d399); 
+        border-radius: 10px; 
+        transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); 
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+    }
+    .steps-indicators { 
+        position: absolute; 
+        top: -17px; 
+        width: 100%; 
+        display: flex; 
+        justify-content: space-between; 
+    }
+    .step-dot { 
+        width: 40px; 
+        height: 40px; 
+        background: #064e3b; 
+        border: 2px solid rgba(16, 185, 129, 0.3); 
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-weight: 800; 
+        z-index: 10; 
+        transition: all 0.4s; 
+        color: #10b981;
+    }
+    .step-dot.active { 
+        border-color: #10b981; 
+        background: #10b981; 
+        color: white; 
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+        transform: scale(1.2);
+    }
+    
+    .evaluation-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 2rem; 
+    }
+    .item-counter { 
+        background: rgba(16, 185, 129, 0.15); 
+        color: #10b981; 
+        padding: 0.5rem 1.2rem; 
+        border-radius: 30px; 
+        font-weight: 800; 
+        font-size: 0.95rem; 
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .inner-progress { 
+        height: 8px; 
+        background: rgba(255, 255, 255, 0.05); 
+        border-radius: 4px; 
+        margin-bottom: 2.5rem; 
+        overflow: hidden; 
+    }
+    .inner-bar { 
+        height: 100%; 
+        background: linear-gradient(to right, #10b981, #6ee7b7); 
+        transition: width 0.4s ease; 
+    }
+
+    .error-banner { 
+        background: rgba(239, 68, 68, 0.2); 
+        border: 1px solid #ef4444; 
+        color: #fca5a5; 
+        padding: 1.5rem; 
+        border-radius: 15px; 
+        margin-bottom: 2.5rem; 
+    }
+
+    .form-step { display: none; }
+    .form-step.active { display: block; animation: slideIn 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+    @keyframes slideIn { 
+        from { transform: translateY(20px); opacity: 0; } 
+        to { transform: translateY(0); opacity: 1; } 
+    }
+
+    .observation-box { 
+        min-height: 280px; 
+        background: rgba(255, 255, 255, 0.03); 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-radius: 25px; 
+        padding: 2.5rem; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        margin-bottom: 2rem; 
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+    }
+    .item-title { 
+        font-size: 1.6rem; 
+        font-weight: 800; 
+        color: #ecfdf5; 
+        margin-bottom: 2.5rem; 
+        text-align: center; 
+        line-height: 1.5; 
+    }
+    
+    .rating-options { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        gap: 1.2rem; 
+    }
+    .rating-label { 
+        cursor: pointer; 
+        border: 2px solid rgba(255, 255, 255, 0.1); 
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 18px; 
+        padding: 1.5rem; 
+        text-align: center; 
+        transition: all 0.3s; 
+        font-weight: 700; 
+        color: #a7f3d0;
+    }
+    .rating-label:hover { 
+        background: rgba(16, 185, 129, 0.1); 
+        border-color: rgba(16, 185, 129, 0.4); 
+        transform: translateY(-3px);
+    }
+    .rating-label.selected { 
+        border-color: #10b981; 
+        background: rgba(16, 185, 129, 0.2); 
+        color: white; 
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+    .rating-label input { display: none; }
+
+    .search-box-container { 
+        position: relative; 
+        margin: 1.5rem auto 3rem auto; 
+        width: 100%; 
+        max-width: 650px;
+    }
+    .search-input { 
+        width: 100%; 
+        padding: 1rem 1rem 1rem 3rem; 
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-radius: 15px; 
+        font-family: inherit; 
+        font-size: 1.1rem; 
+        color: white;
+        transition: all 0.3s;
+    }
+    .search-input:focus {
+        border-color: #10b981;
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+    .search-icon { 
+        position: absolute; 
+        left: 1.2rem; 
+        top: 50%; 
+        transform: translateY(-50%); 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .search-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke: #10b981;
+        fill: none;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.6));
+    }
+
+    .selection-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+        gap: 1.2rem; 
+        margin-bottom: 2.5rem; 
+    }
+    .selection-card { 
+        cursor: pointer; 
+        position: relative; 
+        border: 2px solid transparent; 
+        border-radius: 20px; 
+        background: rgba(255, 255, 255, 0.03); 
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    }
+    .selection-card:hover {
+        background: rgba(255, 255, 255, 0.07);
+        transform: translateY(-5px);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+    .selection-card.hidden { display: none; }
+    .selection-card input { position: absolute; opacity: 0; }
+    .card-content { 
+        padding: 1.5rem; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        text-align: center; 
+    }
+    .card-label { 
+        font-weight: 700; 
+        font-size: 1rem; 
+        line-height: 1.4; 
+        color: #d1fae5;
+    }
+    .card-icon { font-size: 2rem; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: center; }
+    .card-icon svg { width: 45px; height: 45px; stroke: #10b981; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4)); }
+    .selection-card:has(input:checked) { 
+        border-color: #10b981; 
+        background: rgba(16, 185, 129, 0.15); 
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); 
+    }
+
+    .step-footer { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-top: 3rem; 
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .back-btn { background: rgba(255, 255, 255, 0.1); color: #d1fae5; }
+    .back-btn:hover { background: rgba(255, 255, 255, 0.2); }
+    .next-btn { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+    .submit-btn { background: linear-gradient(135deg, #34d399, #059669); color: white; }
+
+    /* Mobile Specific Enhancements */
+    @media (max-width: 768px) {
+        .progress-container { margin-bottom: 3rem; }
+        .step-dot { width: 32px; height: 32px; font-size: 0.9rem; }
+        .steps-indicators { top: -13px; }
+        .observation-box { padding: 1.5rem; min-height: 220px; }
+        .item-title { font-size: 1.25rem; margin-bottom: 1.8rem; }
+        .rating-options { grid-template-columns: 1fr; gap: 0.8rem; }
+        .rating-label { padding: 1.1rem; font-size: 0.9rem; }
+        .selection-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.8rem; }
+        .card-content { padding: 1rem; }
+        .card-icon svg { width: 35px; height: 35px; }
+        .step-footer { flex-direction: column; gap: 1rem; }
+        .step-footer .btn { width: 100%; }
+        .item-counter { font-size: 0.8rem; padding: 0.4rem 1rem; }
+    }
+</style>
+
+<script>
+    const locationMapping = JSON.parse('{{ location_mapping_json|escapejs }}');
+
+    const observationMapping = {
+        'مواقع': [
+            'أعمال النظافة - الموقع - النظافة العامة للموقع', 'أعمال النظافة - وحدات الانارة - نظافة وحدات الانارة',
+            'أعمال النظافة - الارضيات - غسيل ونظافة الأرضيات والممرات', 'أعمال النظافة - غرف المضخات - نظافة غرفة المضخات',
+            'أعمال النظافة - المنشآت المائية - نظافة المنشآت المائية', 'الأعمال الزراعية - المسطحات الخضراء - قص وتحديد',
+            'الأعمال الزراعية - المسطحات الخضراء - تعشيب', 'الأعمال الزراعية - المسطحات الخضراء - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - المسطحات الخضراء - تسميد وتهوية التربة', 'الأعمال الزراعية - مغطيات التربة - قص وتحديد',
+            'الأعمال الزراعية - مغطيات التربة - استبدال الميت والمفقود', 'الأعمال الزراعية - مغطيات التربة - تسميد',
+            'الأعمال الزراعية - مغطيات التربة - تعشيب', 'الأعمال الزراعية - النخيل - تكريب النخيل وإزالة الفسائل الأرضية والهوائية',
+            'الأعمال الزراعية - النخيل - تعشيب وشقرفة وإزالة التربة الزائدة في الاحواض', 'الأعمال الزراعية - النخيل - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - النخيل - إزالة السعف الجاف وصرم النخيل وتنظيف الثمار', 'الأعمال الزراعية - النخيل - التسميد العضوي والكيماوي',
+            'الأعمال الزراعية - الأشجار - تربية وتقليم الأشجار وتنظيف الساق من النموات الجانبية', 'الأعمال الزراعية - الأشجار - تسميد',
+            'الأعمال الزراعية - الأشجار - تسنيد وتدعيم الأشجار', 'الأعمال الزراعية - الأشجار - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - الأشجار - تعشيب وشقرفة وإزالة التربة الزائدة في الاحواض', 'الأعمال الزراعية - الشجيرات والاسيجة - قص وتشكيل الأسيجة والشجيرات الفردية',
+            'الأعمال الزراعية - الشجيرات والاسيجة - تسميد', 'الأعمال الزراعية - الشجيرات والاسيجة - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - الشجيرات والاسيجة - تسنيد وتدعيم الشجيرات الفردية', 'الأعمال الزراعية - الشجيرات والاسيجة - تعشيب وشقرفة وإزالة التربة الزائدة في الاحواض',
+            'الأعمال الزراعية - الزهور والحوليات - تجهيز الاحواض لزراعة الحوليات والزهور', 'الأعمال الزراعية - الزهور والحوليات - تنسيق الزراعة بشكل جمالي ومنظم',
+            'الأعمال الزراعية - الزهور والحوليات - إستبدال الميت والمفقود', 'الأعمال الزراعية - الزهور والحوليات - تعشيب وشقرفة',
+            'الأعمال الزراعية - الزهور والحوليات - التسميد', 'الأعمال الزراعية - المكافحة والوقاية - المكافحة الكيميائية للآفات الحشرية والفطريات والأعشاب',
+            'الأعمال الزراعية - المكافحة والوقاية - الوقاية باستخدام مبيدات الصحة العامة المعتمدة', 'الأعمال المدنية - الاسوار - إستبدال التالف',
+            'الأعمال المدنية - الاسوار - صيانة ودهان', 'الأعمال المدنية - الاحواض - صيانة البردورات والاحواض الزراعية',
+            'الأعمال المدنية - الخزانات وغرف المضخات - صيانة ونظافة خزانات الري', 'الأعمال المدنية - الخزانات وغرف المضخات - صيانة أغطية الخزانات',
+            'الأعمال المدنية - الخزانات وغرف المضخات - علاج التشققات والتصدعات', 'الأعمال المدنية - الخزانات وغرف المضخات - عزل الجدران والارضيات والأسقف لغرف المضخات',
+            'الأعمال المدنية - المباني والقواعد الخرسانية - صيانة جدران المباني الداخلية والخارجية من الرخام والجرانيت والسيراميك ودهانات',
+            'الأعمال المدنية - المباني والقواعد الخرسانية - صيانة السلم والدرج', 'الأعمال المدنية - المباني والقواعد الخرسانية - صيانة الأسقف الجبسية والمستعارة',
+            'الأعمال المدنية - المباني والقواعد الخرسانية - صيانة القواعد الخرسانية لاعمدة الانارة والالعاب والمظلات و اللوحات',
+            'الأعمال المدنية - المنشآت المائية - تغيير مياه النافورة', 'الأعمال المدنية - المنشآت المائية - إضافة الكيماويات الي مياه النافورة للحفاظ علي نظافة المياه',
+            'الأعمال المدنية - المنشآت المائية - كسوة مبني المنشأة المائية من الرخام والجرانيت والسيراميك ...',
+            'الأعمال المدنية - المنشآت المائية - الالتزام بجدول التشغيل المعتمد من الجهات الاشرافية',
+            'الأعمال المدنية - الممرات والأرضيات - استبدال الأجزاء المفقودة والتالفة مع مراعاة التناسق',
+            'الأعمال المدنية - الممرات والأرضيات - علاج الهبوط والتشقق في الأرضيات مع مراعاة التناسق',
+            'الأعمال المدنية - ملاعب الكبار - الشبك الخارجي للملاعب والجدار الزجاجي لملاعب البادل',
+            'الأعمال المدنية - ملاعب الكبار - شباك المرمي ( قدم - سلة ) و شباك الكرة الطائرة والبادل',
+            'الأعمال المدنية - ملاعب الكبار - صيانة المدرجات', 'الأعمال المدنية - ملاعب الكبار - صيانة ارضيات الملاعب',
+            'الأعمال المدنية - العاب الأطفال - صيانة الألعاب', 'الأعمال المدنية - العاب الأطفال - صيانة أرضيات منطقة الألعاب بأنواعها وإضافة وتسوية الرمل وتغطية قواعد الألعاب ( أمن وسلامة )',
+            'الأعمال المدنية - آثاث الموقع - صيانة المظلات بأنواعها وصيانة سلات المهملات بأنواعها',
+            'الأعمال المدنية - آثاث الموقع - صيانة الكراسي والطاولات بأنواعها', 'الأعمال الكهربائية - شبكة الإنارة - مراجعة اللمبات واستبدال التالف والمفقود مع مراعاة توحيد اللون',
+            'الأعمال الكهربائية - شبكة الإنارة - مراجعة واستبدال المفاتيح والأفياش التالفة', 'الأعمال الكهربائية - شبكة الإنارة - دهان وصيانة أعمدة الانارة',
+            'الأعمال الكهربائية - شبكة الإنارة - صيانة نظام التأريض', 'الأعمال الكهربائية - شبكة الإنارة - صيانة غرف تفتيش الكهرباء',
+            'الأعمال الكهربائية - اللوحات الكهربائية - تنظيم الكابلات المغذية للوحات في حامل الكابلات',
+            'الأعمال الكهربائية - اللوحات الكهربائية - صيانة ونظافة اللوحات الكهربائية بأنواعها',
+            'الأعمال الكهربائية - مراوح الشفط - صيانة أو إستبدال مراوح الشفط التالفة والمفقودة',
+            'الأعمال الكهربائية - التوصيلات والكابلات - تأمين جميع التوصيلات والكابلات بطريقة فنية',
+            'الأعمال الميكانيكية والري - الآبار - صيانة ونظافة غرفة البئر', 'الأعمال الميكانيكية والري - الآبار - صيانة مضخات الآبار',
+            'الأعمال الميكانيكية والري - المضخات - صيانة وتشحيم مضخات الري', 'الأعمال الميكانيكية والري - المضخات - صيانة وغسيل الفلاتر',
+            'الأعمال الميكانيكية والري - المضخات - صيانة أسطوانات و عدادات الضغط', 'الأعمال الميكانيكية والري - المضخات - صيانة المضخات الغاطسة ( أمن وسلامة )',
+            'الأعمال الميكانيكية والري - المنشآت المائية - صيانة وتشحيم مضخات النوافير', 'الأعمال الميكانيكية والري - المنشآت المائية - صيانة أسطوانات الضغط',
+            'الأعمال الميكانيكية والري - المنشآت المائية - صيانة عدادات الضغط', 'الأعمال الميكانيكية والري - المنشآت المائية - تمديدات وفوهات النوافير',
+            'الأعمال الميكانيكية والري - طفاية الحريق - صيانة أو إستبدال طفايات الحريق ( أمن وسلامة )',
+            'الأعمال الميكانيكية والري - الري - صيانة خطوط الري الرئيسية والفرعية والليات وتثبيتها',
+            'الأعمال الميكانيكية والري - الري - صيانة المحابس وصناديق المحابس وإستبدال التالف وإضافة البحص',
+            'الأعمال الميكانيكية والري - الري - صيانة الرشاشات والببلرات والنقاطات',
+            'الأعمال الميكانيكية والري - الري - منع تسريبات وخروج مياه الري خارج الأحواض والمزروعات',
+            'الأعمال الميكانيكية والري - الري - ري جميع المزروعات بكميات مياه كافية'
+        ],
+        'دورات مياه': [
+            'أعمال نظافة دورات مياه - توفير أدوات النظافة - توفير ادوات النظافة بالعدد الكافي لتنفيذ الأعمال المطلوبة',
+            'أعمال نظافة دورات مياه - توفير مواد النظافة - توفير مواد النظافة من النوعيات المعتمدة من الجهات الاشرافية بصفة مستمرة وبكميات كافية لتنفيذ الاعمال المطلوبة',
+            'أعمال نظافة دورات مياه - أعمال النظافة الدورية لدورات المياه - القيام بأعمال النظافة الدورية وتطهير دورات المياه بجميع مكوناتها من أرضيات وجدران ومرايات والمغاسل وغيرها والقيام بأعمال النظافة العميقة لجميع العناصر والأجزاء بشكل دوري حسب الخطة المعتمدة للصيانة والقيام بأعمال المكافحة الحشرية بمبيدات الصحة العامة',
+            'اعمال صيانة دورات مياه - الأعمال المدنية - صيانة خزانات المياه وصيانة ومعالجة عزل الجدران والأرضيات والأسقف لغرف المضخات ومحتوياتها وفحص ومراجعة وإصلاح وإستبدال مواسير المياه والصرف والتغذية لدورات المياه وفحص ومراجعة وإصلاح وإستبدال المغاسل والمرايات والخلاطات فحص ومراجعة وإصلاح وإستبدال الاكسسوارات وفحص ومراجعة شبكة الصرف الصحي وشفط حفر الصرف وكسوة جدران المباني والدرج والأرضيات من الرخام والجرانيت والسيراميك وغيره',
+            'اعمال صيانة دورات مياه - الأعمال الكهربائية - إستبدال اللمبات التالفة والمفقودة مع مراعاة توحيد اللون وإستبدال المفاتيح والأفياش التالفة وصيانة ونظافة اللوحات الكهربائية وصيانة أو إستبدال سخانات المياه ومراوح الشفط وأجهزة تجفيف الايدي التالفة والمفقودة وتأمين جميع التوصيلات والكابلات بطريقة فنية',
+            'اعمال صيانة دورات مياه - الأعمال الميكانيكية - صيانة مضخات المياه وصيانة أو إستبدال طفاية الحريق'
+        ],
+        'مساحات انتشارية': [
+            'أعمال النظافة - الموقع العام - النظافة العامة للموقع', 'أعمال النظافة - غرف المضخات - نظافة غرفة المضخات',
+            'أعمال النظافة - المنشآت المائية - نظافة المنشآت المائية', 'الأعمال الزراعية - المسطحات الخضراء - قص وتحديد',
+            'الأعمال الزراعية - المسطحات الخضراء - تعشيب', 'الأعمال الزراعية - المسطحات الخضراء - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - المسطحات الخضراء - تسميد وتهوية التربة', 'الأعمال الزراعية - مغطيات التربة - قص وتحديد',
+            'الأعمال الزراعية - مغطيات التربة - استبدال الميت والمفقود', 'الأعمال الزراعية - مغطيات التربة - تسميد',
+            'الأعمال الزراعية - مغطيات التربة - تعشيب', 'الأعمال الزراعية - النخيل - تكريب النخيل وإزالة الفسائل الأرضية والهوائية',
+            'الأعمال الزراعية - النخيل - تعشيب وشقرفة وإزالة التربة الزائدة في الاحواض', 'الأعمال الزراعية - النخيل - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - النخيل - إزالة السعف الجاف وصرم النخيل وتنظيف الثمار', 'الأعمال الزراعية - النخيل - التسميد العضوي والكيماوي',
+            'الأعمال الزراعية - الأشجار - تربية وتقليم الأشجار وتنظيف الساق من النموات الجانبية', 'الأعمال الزراعية - الأشجار - تسميد',
+            'الأعمال الزراعية - الأشجار - تسنيد وتدعيم الأشجار', 'الأعمال الزراعية - الأشجار - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - الأشجار - تعشيب وشقرفة وإزالة التربة الزائدة في الاحواض', 'الأعمال الزراعية - الشجيرات والاسيجة - قص وتشكيل الأسيجة والشجيرات الفردية',
+            'الأعمال الزراعية - الشجيرات والاسيجة - تسميد', 'الأعمال الزراعية - الشجيرات والاسيجة - إستبدال الميت والمفقود',
+            'الأعمال الزراعية - الشجيرات والاسيجة - تسنيد وتدعيم الشجيرات الفردية', 'الأعمال الزراعية - الشجيرات والاسيجة - تعشيب وشقرفة وإزالة التربة الزائدة في الاحواض',
+            'الأعمال الزراعية - الزهور والحوليات - تجهيز الاحواض لزراعة الحوليات والزهور', 'الأعمال الزراعية - الزهور والحوليات - تنسيق الزراعة بشكل جمالي ومنظم',
+            'الأعمال الزراعية - الزهور والحوليات - إستبدال الميت والمفقود', 'الأعمال الزراعية - الزهور والحوليات - تعشيب وشقرفة',
+            'الأعمال الزراعية - الزهور والحوليات - التسميد', 'الأعمال الزراعية - المكافحة والوقاية - المكافحة الكيميائية للآفات الحشرية والفطريات والأعشاب',
+            'الأعمال الزراعية - المكافحة والوقاية - استخدام مبيدات الصحة العامة المعتمدة', 'الاعمال المدنية - الاحواض - صيانة البردورات والاحواض الزراعية',
+            'الاعمال المدنية - الخزانات وغرف المضخات - صيانة ونظافة خزانات الري', 'الاعمال المدنية - الخزانات وغرف المضخات - صيانة أغطية الخزانات',
+            'الاعمال المدنية - الخزانات وغرف المضخات - علاج التشققات والتصدعات', 'الاعمال المدنية - الخزانات وغرف المضخات - عزل الجدران والارضيات والأسقف لغرف المضخات',
+            'الاعمال المدنية - المنشآت المائية - تغيير مياه النافورة', 'الاعمال المدنية - المنشآت المائية - إضافة الكيماويات الي مياه النافورة للحفاظ علي نظافة المياه',
+            'الاعمال المدنية - المنشآت المائية - كسوة مبني المنشأة المائية من الرخام والجرانيت والسيراميك ...',
+            'الاعمال المدنية - المنشآت المائية - الالتزام بجدول التشغيل المعتمد من الجهات الاشرافية',
+            'الأعمال الكهربائية - شبكة الإنارة - مراجعة اللمبات واستبدال ا التالف والمفقود مع مراعاة توحيد اللون',
+            'الأعمال الكهربائية - اللوحات الكهربائية - تنظيم الكابلات المغذية للوحات في حامل الكابلات',
+            'الأعمال الكهربائية - اللوحات الكهربائية - صيانة ونظافة اللوحات الكهربائية بأنواعها',
+            'الأعمال الكهربائية - مراوح الشفط - صيانة أو إستبدال مراوح الشفط التالفة والمفقودة',
+            'الأعمال الكهربائية - التوصيلات والكابلات - تأمين جميع التوصيلات والكابلات بطريقة فنية',
+            'الأعمال الميكانيكية والري - الآبار - صيانة ونظافة غرفة البئر', 'الأعمال الميكانيكية والري - الآبار - صيانة مضخات الآبار',
+            'الأعمال الميكانيكية والري - المضخات - صيانة وتشحيم مضخات الري', 'الأعمال الميكانيكية والري - المضخات - صيانة وغسيل الفلاتر',
+            'الأعمال الميكانيكية والري - المضخات - صيانة أسطوانات و عدادات الضغط', 'الأعمال الميكانيكية والري - المضخات - صيانة المضخات الغاطسة ( أمن وسلامة )',
+            'الأعمال الميكانيكية والري - المنشآت المائية - صيانة وتشحيم مضخات النوافير', 'الأعمال الميكانيكية والري - المنشآت المائية - صيانة أسطوانات الضغط',
+            'الأعمال الميكانيكية والري - المنشآت المائية - صيانة عدادات الضغط', 'الأعمال الميكانيكية والري - المنشآت المائية - تمديدات وفوهات النوافير',
+            'الأعمال الميكانيكية والري - طفاية الحريق - صيانة أو إستبدال طفايات الحريق ( أمن وسلامة )',
+            'الأعمال الميكانيكية والري - الري - صيانة خطوط الري الرئيسية والفرعية والليات وتثبيتها',
+            'الأعمال الميكانيكية والري - الري - صيانة المحابس وصناديق المحابس وإستبدال التالف وإضافة البحص',
+            'الأعمال الميكانيكية والري - الري - صيانة الرشاشات والببلرات والنقاطات',
+            'الأعمال الميكانيكية والري - الري - منع تسريبات وخروج مياه الري خارج الأحواض والمزروعات',
+            'الأعمال الميكانيكية والري - الري - ري جميع المزروعات بكميات مياه كافية'
+        ]
+    };
+
+    const ratingOptions = [
+        'غير مطابق (غير موجود)',
+        'غير منفذ',
+        'منفذ (100% إنجاز)',
+        'منفذ ويوجد به ملاحظات جودة'
+    ];
+
+    let selectedRegion = '';
+    let selectedSiteType = '';
+    let currentObservationIndex = 0;
+    let evaluations = {}; // { itemName: ratingValue }
+
+    function handleRegionChange(region) { selectedRegion = region; updateLocationChoices(); }
+    function handleSiteTypeChange(siteType) { selectedSiteType = siteType; updateLocationChoices(); }
+
+    function updateLocationChoices() {
+        if (!selectedRegion || !selectedSiteType) return;
+        const grid = document.getElementById('location-selection-grid');
+        const locations = (locationMapping[selectedRegion] && locationMapping[selectedRegion][selectedSiteType]) || [];
+        grid.innerHTML = '';
+        if (locations.length === 0) {
+            grid.innerHTML = '<p style="text-align: center; color: #999;">لا توجد مواقع لهذا التصنيف</p>';
+        } else {
+            locations.forEach(loc => {
+                const card = document.createElement('label');
+                card.className = 'selection-card';
+                card.innerHTML = `
+                    <input type="radio" name="location" value="${loc}" required>
+                    <div class="card-content">
+                        <span class="card-icon">
+                            <svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6zm6-3v15m6-15v15"></path></svg>
+                        </span>
+                        <span class="card-label">${loc}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        document.getElementById('location-step-title').innerText = `اختيار الموقع (${selectedRegion} - ${selectedSiteType})`;
+    }
+
+    function renderObservation() {
+        const container = document.getElementById('observation-container');
+        const items = observationMapping[selectedSiteType] || [];
+        const total = items.length;
+
+        if (currentObservationIndex >= total) {
+            showFinalSummary();
+            return;
+        }
+
+        const itemName = items[currentObservationIndex];
+        const savedStatus = evaluations[itemName] || null;
+
+        document.getElementById('item-counter').innerText = `البند ${currentObservationIndex + 1} من ${total}`;
+        document.getElementById('inner-bar').style.width = ((currentObservationIndex) / total * 100) + '%';
+        document.getElementById('prev-item-btn').style.visibility = currentObservationIndex > 0 ? 'visible' : 'hidden';
+
+        let html = `<div class="item-title">${itemName}</div>`;
+        html += `<div class="rating-options">`;
+        ratingOptions.forEach(opt => {
+            const isSelected = savedStatus === opt;
+            html += `
+                <label class="rating-label ${isSelected ? 'selected' : ''}">
+                    <input type="radio" name="temp_rating" value="${opt}" onchange="selectRating('${itemName}', '${opt}')">
+                    ${opt}
+                </label>
+            `;
+        });
+        html += `</div>`;
+        
+        container.innerHTML = html;
+        document.getElementById('serial-footer').style.display = 'flex';
+        document.getElementById('final-footer').style.display = 'none';
+        document.getElementById('auto-next-label').style.display = 'block';
+    }
+
+    function selectRating(itemName, value) {
+        evaluations[itemName] = value;
+        
+        // Visual feedback
+        document.querySelectorAll('.rating-label').forEach(lbl => lbl.classList.remove('selected'));
+        event.target.parentElement.classList.add('selected');
+
+        // Auto next with slight delay
+        setTimeout(() => {
+            nextObservationItem();
+        }, 500); 
+    }
+
+    function nextObservationItem() {
+        const items = observationMapping[selectedSiteType] || [];
+        if (currentObservationIndex < items.length) {
+            currentObservationIndex++;
+            renderObservation();
+        }
+    }
+
+    function prevObservationItem() {
+        if (currentObservationIndex > 0) {
+            currentObservationIndex--;
+            renderObservation();
+        }
+    }
+
+    function showFinalSummary() {
+        const container = document.getElementById('observation-container');
+        const items = observationMapping[selectedSiteType] || [];
+        document.getElementById('item-counter').innerText = `مكتمل (${items.length} بند)`;
+        document.getElementById('inner-bar').style.width = '100%';
+        document.getElementById('inner-bar').style.background = '#2ecc71';
+
+        container.innerHTML = `
+            <div class="item-title" style="color: #2ecc71;">تم تقييم كافة البنود بنجاح! 🎉</div>
+            <p style="text-align: center; color: #666;">يمكنك الآن إضافة ملاحظات ختامية والنقر على إرسال التقرير.</p>
+        `;
+
+        document.getElementById('serial-footer').style.display = 'none';
+        document.getElementById('final-footer').style.display = 'flex';
+        
+        // Save evaluations to hidden field
+        document.getElementById('evaluation_data').value = JSON.stringify(evaluations);
+    }
+
+    function goToStep3() {
+        prevStep(4);
+        currentObservationIndex = 0;
+    }
+
+    function filterCards(gridId, searchId) {
+        const query = document.getElementById(searchId).value.toLowerCase();
+        document.querySelectorAll(`#${gridId} .selection-card`).forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.classList.toggle('hidden', !text.includes(query));
+        });
+    }
+
+    function updateProgress(step) {
+        const bar = document.getElementById('progress-bar');
+        const dots = document.querySelectorAll('.step-dot');
+        bar.style.width = (step / 4) * 100 + '%';
+        dots.forEach((dot, i) => dot.classList.toggle('active', i < step));
+    }
+
+    function nextStep(step) {
+        const current = document.getElementById('step-' + step);
+        const next = document.getElementById('step-' + (step + 1));
+        
+        if (step === 3) {
+            if (!current.querySelector('input[name="location"]:checked')) {
+                alert('يرجى اختيار الموقع للمتابعة');
+                return;
+            }
+            renderObservation(); // Initialize step 4
+        } else {
+            if (!current.querySelector('input[required]:checked')) {
+                alert('يرجى الاختيار للمتابعة');
+                return;
+            }
+        }
+        
+        current.classList.remove('active');
+        next.classList.add('active');
+        updateProgress(step + 1);
+    }
+
+    function prevStep(step) {
+        document.getElementById('step-' + step).classList.remove('active');
+        document.getElementById('step-' + (step - 1)).classList.add('active');
+        updateProgress(step - 1);
+    }
+</script>
+{% endblock %}

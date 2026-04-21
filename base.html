@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}مشروعي - MyMission{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #064e3b; /* Deep Forest Green */
+            --secondary-color: #022c22; /* Darker Forest */
+            --accent-color: #10b981fb; /* Emerald */
+            --text-color: #f0fdf4; /* Very Light Green text */
+            --glass-bg: rgba(6, 78, 59, 0.776); /* Highly Transparent (5%) */
+            --glass-border: rgba(16, 185, 129, 0.048);
+            --gradient-start: #064e3b;
+            --gradient-end: #059668d1;
+            --success-color: #34d399;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(rgba(2, 30, 24, 0.473), rgba(2, 30, 24, 0.477)), url('/static/img/bg_riyadh.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: rgba(2, 44, 34, 0.769);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0.4rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .logo {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            padding: 3rem;
+            box-shadow: 0 15px 50px 0 rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 550px;
+            animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            color: white;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        h1 {
+            margin-top: 0;
+            color: var(--accent-color);
+            text-align: center;
+            font-weight: 800;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.8rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.8rem;
+            font-weight: 700;
+            color: #d1fae5;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-family: inherit;
+            color: white;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-color), #059669);
+            color: white;
+            border: none;
+            padding: 1.2rem 2.5rem;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.1rem;
+        }
+
+        .nav-links span {
+            font-size: 0.9rem;
+            color: white;
+            font-weight: 700;
+        }
+
+        .nav-links a {
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            opacity: 0.8;
+        }
+
+        .nav-links a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.95rem;
+            color: #065f46;
+            background: rgba(2, 44, 34, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            header {
+                padding: 0.5rem 1rem;
+                flex-direction: column;
+                gap: 0.8rem;
+                text-align: center;
+            }
+            .header-left {
+                flex-direction: column;
+                gap: 0.8rem !important;
+            }
+            .header-right img {
+                height: 55px !important;
+            }
+            .logo img {
+                height: 80px !important;
+            }
+            main {
+                padding: 1rem;
+            }
+            .card {
+                padding: 1.8rem;
+                border-radius: 20px;
+            }
+            h1 {
+                font-size: 1.7rem;
+                margin-bottom: 1.5rem;
+            }
+            .nav-links {
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% block header %}
+    <header>
+        <!-- جهة اليمين: شعار الأمانة -->
+        <div class="header-right">
+            <img src="/static/img/amanaL.png" alt="Amana Logo" style="height: 75px; width: auto; filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.3));">
+        </div>
+
+        <!-- جهة اليسار: شعار الشركة وروابط الترحيب/الخروج -->
+        <div class="header-left" style="display: flex; align-items: center; gap: 2rem;">
+            <a href="/" class="logo">
+                <img src="/static/img/logoM.png" alt="Mission Logo" style="height: 100px; width: auto; filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.3));">
+            </a>
+            <nav class="nav-links">
+                {% if user.is_authenticated %}
+                    <span>مرحباً، {{ user.username }}</span>
+                    <a href="/admin/logout/">خروج</a>
+                {% else %}
+                    <a href="{% url 'login' %}">دخول</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+    {% endblock header %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        &copy; 2026 Crafted with care by CE.Majid Alaliani - جميع الحقوق محفوظة
+    </footer>
+</body>
+</html>
